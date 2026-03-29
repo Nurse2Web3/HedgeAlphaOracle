@@ -82,9 +82,12 @@ function generateSignal(change24h) {
 
 // ─────────────────────────────────────────────
 // PAYMENT MIDDLEWARE FACTORY
-// NOW ACCEPTS: Base Mainnet + Monad Testnet
+// NOW ACCEPTS: Base Mainnet + Monad Testnet + Hedera Mainnet + Algorand Mainnet
 // $0.01 = 10000 | $0.02 = 20000 | $0.05 = 50000
 // ─────────────────────────────────────────────
+const HEDERA_WALLET = '0x00000000000000000000000000000000008cd721'; // Hedera 0.0.9230113 (Tallytrades1)
+const ALGORAND_WALLET = '5DWBO7N5KU3PXQHXLKDCEALRI4TEOLJG3KTBADTQ734TKZRWMFOA25VLKQ';
+
 function requirePayment(amountMicro, description, exampleInput, exampleOutput) {
   return function(req, res, next) {
     const paymentSig = req.headers['x-payment-signature'] || req.query.paymentSig;
@@ -110,6 +113,24 @@ function requirePayment(amountMicro, description, exampleInput, exampleOutput) {
           amount: String(amountMicro),
           maxTimeoutSeconds: 60,
           extra: { name: 'USDC', version: '2', facilitator: 'https://x402-facilitator.molandak.org' }
+        },
+        {
+          scheme: 'exact',
+          network: 'eip155:295',
+          asset: '0x000000000000000000000000000000000006f89a',
+          payTo: HEDERA_WALLET,
+          amount: String(amountMicro),
+          maxTimeoutSeconds: 60,
+          extra: { name: 'USDC', version: '1', facilitator: 'https://x402.blockydevs.com' }
+        },
+        {
+          scheme: 'exact',
+          network: 'algorand:wGHE2Pwdvd7S12BL5FaOP20EGYesN73k',
+          asset: '31566704',
+          payTo: ALGORAND_WALLET,
+          amount: String(amountMicro),
+          maxTimeoutSeconds: 60,
+          extra: { name: 'USDC', version: '1', facilitator: 'https://facilitator.goplausible.xyz' }
         }
       ],
       resource: {
@@ -143,7 +164,7 @@ app.get('/.well-known/x402', (req, res) => {
       BASE_URL + '/market/whale-alert/BTC',
       BASE_URL + '/portfolio/risk-score'
     ],
-    instructions: '# HedgeAlphaOracle v4.1\n\nReal-time crypto & stock trading signals + market intelligence for AI agents.\n\n## Endpoints\n- /sentiment/{asset} — Sentiment score $0.01\n- /alpha/{asset} — Entry/target/stop loss $0.02\n- /premium/{asset} — Full thesis + risk $0.05\n- /market/fear-greed — Fear & Greed index $0.01\n- /market/whale-alert/{asset} — Large move detection $0.02\n- /portfolio/risk-score — Multi-asset risk $0.02\n\n## Networks\nBase Mainnet (eip155:8453) | Monad Testnet (eip155:10143)\n\n## Provider\nNurse2Web3 — https://nurse2web3.com'
+    instructions: '# HedgeAlphaOracle v4.2\n\nReal-time crypto & stock trading signals + market intelligence for AI agents.\n\n## Endpoints\n- /sentiment/{asset} — Sentiment score $0.01\n- /alpha/{asset} — Entry/target/stop loss $0.02\n- /premium/{asset} — Full thesis + risk $0.05\n- /market/fear-greed — Fear & Greed index $0.01\n- /market/whale-alert/{asset} — Large move detection $0.02\n- /portfolio/risk-score — Multi-asset risk $0.02\n\n## Networks\nBase Mainnet (eip155:8453) | Monad Testnet (eip155:10143) | Hedera Mainnet (eip155:295) | Algorand Mainnet\n\n## Provider\nNurse2Web3 — https://nurse2web3.com'
   });
 });
 
@@ -151,14 +172,14 @@ app.get('/x402/discovery', (req, res) => {
   res.json({
     x402Version: 2,
     name: 'HedgeAlphaOracle',
-    version: '4.1',
-    description: 'Real-time crypto & stock signals + market intelligence for AI agents. Accepts payments on Base and Monad.',
+    version: '4.2',
+    description: 'Real-time crypto & stock signals + market intelligence for AI agents. Accepts payments on Base, Monad, Hedera, and Algorand.',
     provider: 'Nurse2Web3',
     url: BASE_URL,
     discoverable: true,
     category: 'financial-data',
-    tags: ['crypto', 'stocks', 'trading-signals', 'sentiment', 'fear-greed', 'whale-alert', 'portfolio', 'defi', 'finance', 'monad', 'base'],
-    networks: ['base-mainnet', 'monad-testnet'],
+    tags: ['crypto', 'stocks', 'trading-signals', 'sentiment', 'fear-greed', 'whale-alert', 'portfolio', 'defi', 'finance', 'monad', 'base', 'hedera', 'algorand', 'hbar'],
+    networks: ['base-mainnet', 'monad-testnet', 'hedera-mainnet', 'algorand-mainnet'],
     endpoints: [
       { path: '/sentiment/{asset}', price: '$0.01', description: 'Sentiment score for any crypto or stock' },
       { path: '/alpha/{asset}',     price: '$0.02', description: 'Entry zone, target, stop loss signals' },
@@ -179,7 +200,7 @@ app.get('/x402/discovery', (req, res) => {
 app.get('/', (req, res) => {
   res.json({
     api: 'HedgeAlphaOracle',
-    version: '4.1',
+    version: '4.2',
     description: 'Real-time crypto & stock signals + market intelligence for AI agents',
     endpoints: {
       '/sentiment/:asset':          'Sentiment score — $0.01',
@@ -190,18 +211,20 @@ app.get('/', (req, res) => {
       '/portfolio/risk-score':      'Portfolio risk score — $0.02',
       '/health':                    'Health check'
     },
-    networks: { base: 'eip155:8453 (mainnet)', monad: 'eip155:10143 (testnet)' },
+    networks: { base: 'eip155:8453 (mainnet)', monad: 'eip155:10143 (testnet)', hedera: 'eip155:295 (mainnet)', algorand: 'algorand mainnet' },
     wallet: WALLET_ADDRESS
   });
 });
 
 app.get('/health', (req, res) => {
   res.json({
-    status: 'OK', service: 'HedgeAlphaOracle', version: '4.1',
+    status: 'OK', service: 'HedgeAlphaOracle', version: '4.2',
     wallet: WALLET_ADDRESS, x402: 'enabled', bazaar: 'discoverable',
     networks: {
       base: 'eip155:8453 (mainnet) — active',
-      monad: 'eip155:10143 (testnet) — active'
+      monad: 'eip155:10143 (testnet) — active',
+      hedera: 'eip155:295 (mainnet) — active',
+      algorand: 'algorand (mainnet) — active'
     },
     pricing: { sentiment: '$0.01', alpha: '$0.02', premium: '$0.05', fearGreed: '$0.01', whaleAlert: '$0.02', portfolioRisk: '$0.02' }
   });
@@ -488,9 +511,9 @@ app.get('/signal/:asset',
 );
 
 app.listen(PORT, function() {
-  console.log('HedgeAlphaOracle v4.1 running on port ' + PORT);
-  console.log('Networks: Base Mainnet (eip155:8453) + Monad Testnet (eip155:10143)');
+  console.log('HedgeAlphaOracle v4.2 running on port ' + PORT);
+  console.log('Networks: Base (eip155:8453) + Monad (eip155:10143) + Hedera (eip155:295) + Algorand');
   console.log('6 endpoints: sentiment $0.01 | alpha $0.02 | premium $0.05');
   console.log('fear-greed $0.01 | whale-alert $0.02 | portfolio-risk $0.02');
-  console.log('x402 payments on Base + Monad | Bazaar discoverable');
+  console.log('x402 payments on Base + Monad + Hedera + Algorand | Bazaar discoverable');
 });
